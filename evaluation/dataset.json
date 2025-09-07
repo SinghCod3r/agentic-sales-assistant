@@ -1,0 +1,56 @@
+[
+  {
+    "id": "eval_001",
+    "input_text": "alex from google",
+    "context": {
+      "domain_description": "Google is a global technology leader in search, cloud computing, and AI. Over 60,000 employees.",
+      "internal_summary": "Internal documents suggest a potential partnership with Google on cloud services, but their new AI platform is a competitive threat. Focus on our superior customer support as a differentiator."
+    },
+    "expected_talking_points": [
+      "Highlight our alignment with Google's culture of innovation.",
+      "Emphasize our solution's scalability to meet the demands of an enterprise of Google's size.",
+      "Position our superior customer support as a key advantage over their in-house solutions."
+    ],
+    "expected_action_items": [
+      "Schedule a follow-up with Alex to discuss their cloud infrastructure needs.",
+      "Send the case study on the 'Enterprise Cloud Migration' project.",
+      "Connect with Alex on LinkedIn to build rapport."
+    ]
+  },
+  {
+    "id": "eval_002",
+    "input_text": "infosys",
+    "context": {
+      "domain_description": "Infosys is a global leader in next-generation digital services and consulting. Over 200,000 employees.",
+      "internal_summary": "Infosys is a current customer using our legacy platform. Internal memos indicate they are exploring a major digital transformation initiative for Q4. They are cost-sensitive."
+    },
+    "expected_talking_points": [
+      "Reference our long-standing successful partnership.",
+      "Frame our new platform as the perfect engine for their upcoming digital transformation initiative.",
+      "Emphasize the long-term ROI and cost-efficiency of upgrading to our new platform."
+    ],
+    "expected_action_items": [
+      "Identify and contact the key decision-makers for the Q4 transformation project.",
+      "Prepare a customized proposal that focuses on cost savings and efficiency gains.",
+      "Schedule a demo of the new platform for their technical team."
+    ]
+  },
+  {
+    "id": "eval_003",
+    "input_text": "jane from acme startup",
+    "context": {
+      "domain_description": "Acme Startup is a new, fast-growing company in the SaaS space with 50 employees.",
+      "internal_summary": "Acme is not in our CRM. This is a cold outreach opportunity. They recently received Series A funding. Their focus will be on rapid growth and user acquisition."
+    },
+    "expected_talking_points": [
+      "Congratulate them on their recent Series A funding.",
+      "Position our solution as a tool that can help them scale quickly and manage their growth.",
+      "Offer a flexible, startup-friendly pricing model to get them started."
+    ],
+    "expected_action_items": [
+      "Send a personalized outreach email to Jane, referencing their recent funding.",
+      "Offer a free trial or a proof-of-concept project.",
+      "Connect with other key employees at Acme on LinkedIn."
+    ]
+  }
+]

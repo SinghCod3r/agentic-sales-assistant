@@ -1,0 +1,6 @@
+fastapi==0.109.2
+uvicorn==0.27.1
+redis==5.0.1
+pydantic
+openai==1.12.0
+python-dotenv
