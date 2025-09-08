@@ -2,6 +2,12 @@
 
 This is a multi-agent AI system built for the Oosc3.0 hackathon. It provides real-time talking points, action items, and summaries to a sales representative during a live meeting, with a focus on transparency and provenance.
 
+## Explaination Video 
+[![Agentic Sales Assistant Demo Video](docs/thumbnail.png)](https://drive.google.com/file/d/1DBGZdDytWJePojlrsgQf01ySa3XLGriL/view?usp=sharing)
+
+**[Click Here to Watch the Full Demo Video on Google Drive](https://drive.google.com/file/d/1DBGZdDytWJePojlrsgQf01ySa3XLGriL/view?usp=sharing)**
+
+
 ## Features
 
 - **Multi-Agent Architecture:** A system of 17 independent microservices collaborating via a Redis event bus.
