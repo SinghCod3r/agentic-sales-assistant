@@ -1,5 +1,4 @@
-fastapi==0.109.2
-uvicorn==0.27.1
-redis==5.0.1
-websockets==10.4
-pydantic
+fastapi
+uvicorn[standard]
+redis
+python-dotenv

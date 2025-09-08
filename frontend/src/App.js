@@ -1,16 +1,23 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import './App.css';
 
-// CORRECTED: The agent IDs in this list now perfectly match the backend Python files.
+// Enhanced agent workflow with new agents
 const AGENT_WORKFLOW = [
   'ui_agent_v1',
-  'domain_intelligence_agent_v1', // <-- This was the typo
+  'domain_intelligence_agent_v1',
   'person_enrichment_agent_v1',
+  'lead_scoring_agent_v1',
+  'competitor_intelligence_agent_v1',
+  'pricing_intelligence_agent_v1',
   'compliance_agent_v1',
   'retriever_rag_agent_v1',
   'summarizer_agent_v1',
+  'sentiment_analysis_agent_v1',
+  'meeting_notes_agent_v1',
   'suggestion_agent_v1',
   'ranking_agent_v1',
+  'action_item_agent_v1',
+  'followup_agent_v1',
 ];
 
 function App() {
@@ -42,6 +49,8 @@ function App() {
 
         if (eventData.channel === 'suggestions.ranked') {
           setSuggestions(eventData.payload.suggestions || []);
+        }
+        if (eventData.channel === 'followup.plan_generated') {
           setIsProcessing(false); // Workflow complete
         }
       } catch (error) {

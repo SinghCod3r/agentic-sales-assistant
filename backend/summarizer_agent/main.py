@@ -1,90 +1,97 @@
 import os
 import redis
+import threading
 import json
-import time
-import uuid
-import requests
 from fastapi import FastAPI
-from threading import Thread
 from dotenv import load_dotenv
+from openai import OpenAI
 
+# Load environment variables from .env file
 load_dotenv()
 
 # --- Configuration ---
-AGENT_ID = "summarizer_agent_v1"
-LISTEN_TO_CHANNEL = "documents.retrieved"
 REDIS_HOST = os.getenv("REDIS_HOST", "localhost")
 REDIS_PORT = int(os.getenv("REDIS_PORT", 6379))
 OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
-OPENROUTER_API_URL = "https://openrouter.ai/api/v1/chat/completions"
-MODEL_NAME = "google/gemini-flash-1.5"
+OPENROUTER_API_BASE = "https://openrouter.ai/api/v1"
 
-app = FastAPI(title=AGENT_ID, version="1.0.0")
-redis_client = None
+# --- FastAPI App ---
+app = FastAPI()
 
-def publish_event(channel, data):
-    if not redis_client: return
-    event_envelope = {
-        "event_id": str(uuid.uuid4()), "timestamp": time.time(),
-        "agent_id": AGENT_ID, "channel": channel, "payload": data
-    }
-    redis_client.publish(channel, json.dumps(event_envelope))
-    print(f"[{AGENT_ID}] Published to '{channel}'.")
+# --- Redis Connection ---
+try:
+    redis_client = redis.Redis(host=REDIS_HOST, port=REDIS_PORT, db=0, decode_responses=True)
+    print("✅ Summarizer Agent connected to Redis.")
+except redis.exceptions.ConnectionError as e:
+    print(f"❌ Summarizer Agent could not connect to Redis: {e}")
+    redis_client = None
 
-def summarize_text(snippets: list) -> str:
-    if not OPENROUTER_API_KEY or "sk-or-..." in OPENROUTER_API_KEY:
-        return "Mock summary: API Key not configured."
+# --- OpenAI Client for OpenRouter ---
+if not OPENROUTER_API_KEY:
+    print("⚠️ Summarizer Agent: OPENROUTER_API_KEY not found in .env file.")
+    llm_client = None
+else:
+    llm_client = OpenAI(
+        api_key=OPENROUTER_API_KEY,
+        base_url=OPENROUTER_API_BASE,
+    )
+    print("✅ Summarizer Agent: OpenAI client for OpenRouter configured.")
+
+def generate_summary(context: str) -> str:
+    """Calls the LLM to generate a summary from the given context."""
+    if not llm_client:
+        print("❌ LLM client not configured. Cannot generate summary.")
+        return "Summary could not be generated due to configuration error."
+
+    print("🧠 Generating summary from context...")
     try:
-        context = "\n".join(snippets)
-        prompt = f"Summarize the key insights from the following internal documents into a single, concise paragraph for a sales executive. Context:\n{context}"
-        
-        headers = {"Authorization": f"Bearer {OPENROUTER_API_KEY}"}
-        payload = {
-            "model": MODEL_NAME,
-            "messages": [{"role": "user", "content": prompt}]
-        }
-        
-        print(f"[{AGENT_ID}] Calling OpenRouter to summarize...")
-        response = requests.post(OPENROUTER_API_URL, headers=headers, json=payload, timeout=60)
-        response.raise_for_status()
-        summary = response.json()["choices"][0]["message"]["content"]
-        print(f"[{AGENT_ID}] Summary generated successfully.")
+        response = llm_client.chat.completions.create(
+            model="nousresearch/nous-hermes-2-mixtral-8x7b-dpo",
+            messages=[
+                {"role": "system", "content": "You are a helpful assistant. Summarize the following context in one concise paragraph for a sales executive."},
+                {"role": "user", "content": context}
+            ],
+            temperature=0.5,
+            max_tokens=200
+        )
+        summary = response.choices[0].message.content.strip()
+        print("👍 Summary generated successfully.")
         return summary
     except Exception as e:
-        print(f"[{AGENT_ID}] LLM call failed: {e}")
-        return "Mock summary (API Failed)."
+        print(f"❌ Error during summary generation API call: {e}")
+        return "Summary could not be generated due to an API error."
 
-def process_event(message):
-    try:
-        data = json.loads(message["data"])
-        snippets = data.get("payload", {}).get("retrieved_snippets", [])
-        if not snippets: return
+def summarizer_task():
+    """A background task that listens for retrieved data and creates a summary."""
+    if not redis_client:
+        return
 
-        summary = summarize_text(snippets)
-        publish_event("summary.created", {"summary": summary})
-    except Exception as e:
-        print(f"[{AGENT_ID}] Error: {e}")
+    pubsub = redis_client.pubsub()
+    # This agent should listen for when the retriever has finished its job
+    pubsub.subscribe("retriever.completed")
+    print("👂 Summarizer listening for 'retriever.completed' event...")
 
-def listen_for_events():
-    if not redis_client: return
-    pubsub = redis_client.pubsub(ignore_subscribe_messages=True)
-    pubsub.subscribe(LISTEN_TO_CHANNEL)
-    print(f"[{AGENT_ID}] Subscribed to '{LISTEN_TO_CHANNEL}'.")
     for message in pubsub.listen():
-        process_event(message)
+        if message["type"] == "message":
+            data = json.loads(message["data"])
+            snippets = data.get("retrieved_snippets")
+            
+            if snippets and isinstance(snippets, list):
+                print("📩 Received retrieved snippets. Starting summarization.")
+                context_to_summarize = "\n".join(snippets)
+                
+                summary_text = generate_summary(context_to_summarize)
+                
+                # THIS IS THE CRITICAL PART: Create the correct payload
+                payload = {"summary": summary_text}
+                
+                redis_client.publish("summary.created", json.dumps(payload))
+                print("📣 Published 'summary.created' event with summary.")
+            else:
+                print("⚠️ Received 'retriever.completed' message but no snippets found.")
 
 @app.on_event("startup")
 async def startup_event():
-    global redis_client
-    try:
-        redis_client = redis.Redis(host=REDIS_HOST, port=REDIS_PORT, db=0, decode_responses=True)
-        redis_client.ping()
-        print(f"[{AGENT_ID}] Connected to Redis.")
-        thread = Thread(target=listen_for_events, daemon=True)
-        thread.start()
-    except redis.exceptions.ConnectionError as e:
-        print(f"[{AGENT_ID}] Redis connection failed: {e}")
-
-@app.get("/")
-def read_root():
-    return {"status": "online", "agent_id": AGENT_ID}
+    print("🚀 Summarizer Agent starting up...")
+    thread = threading.Thread(target=summarizer_task, daemon=True)
+    thread.start()
